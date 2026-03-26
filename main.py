@@ -118,7 +118,7 @@ def get_dinosaur(dino_id: int):
 
 @app.post("/dinosaurs", response_model=Dinosaur, status_code=201, tags=["Dinosaurs"], summary="Add a dinosaur")
 def create_dinosaur(dino: DinoCreate, token: str = Depends(verify_token)):
-    result = supabase.table("dinosaurs").insert(dino.model_dump()).execute()
+    result = supabase.table("dinosaurs").insert(dino.dict()).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create dinosaur")
     return result.data[0]
@@ -129,7 +129,7 @@ def update_dinosaur(dino_id: int, updates: DinoUpdate, token: str = Depends(veri
     existing = supabase.table("dinosaurs").select("id").eq("id", dino_id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail=f"Dinosaur with id={dino_id} not found")
-    payload = {k: v for k, v in updates.model_dump().items() if v is not None}
+    payload = {k: v for k, v in updates.dict().items() if v is not None}
     if not payload:
         raise HTTPException(status_code=400, detail="No fields provided for update")
     result = supabase.table("dinosaurs").update(payload).eq("id", dino_id).execute()
