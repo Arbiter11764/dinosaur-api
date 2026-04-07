@@ -18,3 +18,4 @@ A full CRUD API for managing dinosaur facts backed by **Supabase (PostgreSQL)**.
 
 ### Authentication
 All write operations require a Bearer token:
+"""
