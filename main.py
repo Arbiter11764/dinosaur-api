@@ -100,12 +100,12 @@ def list_dinosaurs(
     period: Optional[str] = None,
 ):
     query = supabase.table("dinosaurs").select("*")
-    if diet:
-        query = query.ilike("diet", f"%{diet}%")
-    if period:
-        query = query.ilike("period", f"%{period}%")
-    result = query.order("id").execute()
-    return result.data
+if diet:
+    query = query.eq("diet", diet)
+if period:
+    query = query.eq("period", period)
+result = query.order("id").execute()
+return result.data
 
 
 @app.get("/dinosaurs/{dino_id}", response_model=Dinosaur, tags=["Dinosaurs"], summary="Get a dinosaur by ID")
