@@ -1,4 +1,5 @@
 Create a database on supabase 
+
 Open the Supabase SQLEditor and run :
 
 CREATE TABLE IF NOT EXISTS dinosaurs (
@@ -33,6 +34,7 @@ VALUES
   ('Pachycephalosaurus',    'Late Cretaceous',  'Omnivore',     4.5,   450, 1931, 'South Dakota, USA',  'Its domed skull was 25 cm thick — used for head-butting rivals');
 
   To deploy Install: pip install -r requirements.tx
+  
   Command: uvicorn main:app --host 0.0.0.0 --port $PORT
 
   Enviroment Variables: SUPABASE_URL SUPABASE_KEY SECRET_KEY
