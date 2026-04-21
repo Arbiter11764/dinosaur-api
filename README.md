@@ -33,7 +33,7 @@ VALUES
   ('Diplodocus',            'Late Jurassic',    'Herbivore',   27.0,  16000, 1877, 'Wyoming, USA',       'Could crack its tail like a whip, producing a sonic boom'),
   ('Pachycephalosaurus',    'Late Cretaceous',  'Omnivore',     4.5,   450, 1931, 'South Dakota, USA',  'Its domed skull was 25 cm thick — used for head-butting rivals');
 
-  To deploy Install: pip install -r requirements.tx
+  To deploy Install: pip install -r requirements.txt
   
   Command: uvicorn main:app --host 0.0.0.0 --port $PORT
 
