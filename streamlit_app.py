@@ -2,20 +2,47 @@ import streamlit as st
 import requests
 
 API_URL = "https://dinosaur-api-xe77.onrender.com"
-SECRET_KEY = "your-super-secret-key"
-HEADERS = {"Authorization": f"Bearer {SECRET_KEY}"}
 
 st.set_page_config(page_title="🦕 Dinosaur Facts", layout="wide")
 st.title("🦕 Dinosaur Facts Explorer")
 st.markdown("A full SCRUD frontend consuming the Dinosaur Facts REST API on Render.")
 
-menu = st.sidebar.selectbox("Choose Operation", [
-    "🔍 Search / List",
-    "📖 Get by ID",
-    "➕ Create",
-    "✏️ Update",
-    "🗑️ Delete"
-])
+# ── AUTH ──────────────────────────────────────────────────────
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.subheader("🔐 Login Required")
+    st.markdown("Enter your API secret key to access the app.")
+    key_input = st.text_input("Secret Key", type="password", placeholder="your-super-secret-key")
+    if st.button("Login"):
+        test = requests.delete(f"{API_URL}/dinosaurs/99999",
+                               headers={"Authorization": f"Bearer {key_input}"})
+        if test.status_code in [200, 404]:
+            st.session_state.authenticated = True
+            st.session_state.secret_key = key_input
+            st.rerun()
+        else:
+            st.error("❌ Invalid key. Try again.")
+    st.stop()
+
+HEADERS = {"Authorization": f"Bearer {st.session_state.secret_key}"}
+
+# ── SIDEBAR ───────────────────────────────────────────────────
+with st.sidebar:
+    st.success("🔓 Logged in")
+    if st.button("Logout"):
+        st.session_state.authenticated = False
+        st.session_state.secret_key = ""
+        st.rerun()
+    st.divider()
+    menu = st.selectbox("Choose Operation", [
+        "🔍 Search / List",
+        "📖 Get by ID",
+        "➕ Create",
+        "✏️ Update",
+        "🗑️ Delete"
+    ])
 
 # ── SEARCH ────────────────────────────────────────────────────
 if menu == "🔍 Search / List":
@@ -84,18 +111,18 @@ elif menu == "📖 Get by ID":
 elif menu == "➕ Create":
     st.header("➕ Add a New Dinosaur")
     with st.form("create_form"):
-        name           = st.text_input("Name *", placeholder="e.g. Allosaurus")
-        period         = st.selectbox("Period *", ["Late Cretaceous", "Early Cretaceous", "Late Jurassic", "Early Jurassic", "Triassic"])
-        diet           = st.selectbox("Diet *", ["Carnivore", "Herbivore", "Omnivore", "Piscivore"])
-        col1, col2     = st.columns(2)
+        name            = st.text_input("Name *", placeholder="e.g. Allosaurus")
+        period          = st.selectbox("Period *", ["Late Cretaceous", "Early Cretaceous", "Late Jurassic", "Early Jurassic", "Triassic"])
+        diet            = st.selectbox("Diet *", ["Carnivore", "Herbivore", "Omnivore", "Piscivore"])
+        col1, col2      = st.columns(2)
         with col1:
-            length_m       = st.number_input("Length (m)", min_value=0.0, step=0.1)
+            length_m        = st.number_input("Length (m)", min_value=0.0, step=0.1)
             discovered_year = st.number_input("Discovered Year", min_value=1800, max_value=2100, step=1, value=1900)
         with col2:
-            weight_kg      = st.number_input("Weight (kg)", min_value=0, step=100)
-            found_in       = st.text_input("Found In", placeholder="e.g. Montana, USA")
-        fun_fact       = st.text_area("Fun Fact", placeholder="Something interesting...")
-        submitted      = st.form_submit_button("➕ Create Dinosaur")
+            weight_kg       = st.number_input("Weight (kg)", min_value=0, step=100)
+            found_in        = st.text_input("Found In", placeholder="e.g. Montana, USA")
+        fun_fact        = st.text_area("Fun Fact", placeholder="Something interesting...")
+        submitted       = st.form_submit_button("➕ Create Dinosaur")
 
     if submitted:
         if not name:
