@@ -7,35 +7,8 @@ st.set_page_config(page_title="🦕 Dinosaur Facts", layout="wide")
 st.title("🦕 Dinosaur Facts Explorer")
 st.markdown("A full SCRUD frontend consuming the Dinosaur Facts REST API on Render.")
 
-# ── AUTH ──────────────────────────────────────────────────────
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-    st.subheader("🔐 Login Required")
-    st.markdown("Enter your API secret key to access the app.")
-    key_input = st.text_input("Secret Key", type="password", placeholder="your-super-secret-key")
-    if st.button("Login"):
-        test = requests.delete(f"{API_URL}/dinosaurs/99999",
-                               headers={"Authorization": f"Bearer {key_input}"})
-        if test.status_code in [200, 404]:
-            st.session_state.authenticated = True
-            st.session_state.secret_key = key_input
-            st.rerun()
-        else:
-            st.error("❌ Invalid key. Try again.")
-    st.stop()
-
-HEADERS = {"Authorization": f"Bearer {st.session_state.secret_key}"}
-
 # ── SIDEBAR ───────────────────────────────────────────────────
 with st.sidebar:
-    st.success("🔓 Logged in")
-    if st.button("Logout"):
-        st.session_state.authenticated = False
-        st.session_state.secret_key = ""
-        st.rerun()
-    st.divider()
     menu = st.selectbox("Choose Operation", [
         "🔍 Search / List",
         "📖 Get by ID",
@@ -43,6 +16,12 @@ with st.sidebar:
         "✏️ Update",
         "🗑️ Delete"
     ])
+
+def get_auth_key():
+    """Show an inline key input and return the key, or None if not entered yet."""
+    st.warning("🔐 This action requires an API key.")
+    key = st.text_input("Enter your Secret Key", type="password", key="auth_key_input")
+    return key if key else None
 
 # ── SEARCH ────────────────────────────────────────────────────
 if menu == "🔍 Search / List":
@@ -110,6 +89,9 @@ elif menu == "📖 Get by ID":
 # ── CREATE ────────────────────────────────────────────────────
 elif menu == "➕ Create":
     st.header("➕ Add a New Dinosaur")
+
+    secret_key = get_auth_key()
+
     with st.form("create_form"):
         name            = st.text_input("Name *", placeholder="e.g. Allosaurus")
         period          = st.selectbox("Period *", ["Late Cretaceous", "Early Cretaceous", "Late Jurassic", "Early Jurassic", "Triassic"])
@@ -125,8 +107,10 @@ elif menu == "➕ Create":
         submitted       = st.form_submit_button("➕ Create Dinosaur")
 
     if submitted:
-        if not name:
-            st.error("Name is required.")
+        if not secret_key:
+            st.error("❌ Please enter your API key above before creating.")
+        elif not name:
+            st.error("❌ Name is required.")
         else:
             payload = {
                 "name": name,
@@ -138,16 +122,25 @@ elif menu == "➕ Create":
                 "found_in": found_in,
                 "fun_fact": fun_fact
             }
-            response = requests.post(f"{API_URL}/dinosaurs", json=payload, headers=HEADERS)
+            response = requests.post(
+                f"{API_URL}/dinosaurs",
+                json=payload,
+                headers={"Authorization": f"Bearer {secret_key}"}
+            )
             if response.status_code == 201:
                 dino = response.json()
                 st.success(f"✅ Created {dino['name']} with ID {dino['id']}!")
+            elif response.status_code == 401:
+                st.error("❌ Invalid API key.")
             else:
                 st.error(f"Failed to create: {response.text}")
 
 # ── UPDATE ────────────────────────────────────────────────────
 elif menu == "✏️ Update":
     st.header("✏️ Update a Dinosaur")
+
+    secret_key = get_auth_key()
+
     dino_id = st.number_input("Enter Dinosaur ID to update", min_value=1, step=1)
 
     if st.button("Load"):
@@ -175,26 +168,38 @@ elif menu == "✏️ Update":
             submitted       = st.form_submit_button("✏️ Update Dinosaur")
 
         if submitted:
-            payload = {
-                "name": name,
-                "period": period,
-                "diet": diet,
-                "length_m": length_m,
-                "weight_kg": weight_kg,
-                "discovered_year": discovered_year,
-                "found_in": found_in,
-                "fun_fact": fun_fact
-            }
-            response = requests.put(f"{API_URL}/dinosaurs/{dino['id']}", json=payload, headers=HEADERS)
-            if response.status_code == 200:
-                st.success(f"✅ Updated {response.json()['name']} successfully!")
-                del st.session_state.loaded_dino
+            if not secret_key:
+                st.error("❌ Please enter your API key above before updating.")
             else:
-                st.error(f"Failed to update: {response.text}")
+                payload = {
+                    "name": name,
+                    "period": period,
+                    "diet": diet,
+                    "length_m": length_m,
+                    "weight_kg": weight_kg,
+                    "discovered_year": discovered_year,
+                    "found_in": found_in,
+                    "fun_fact": fun_fact
+                }
+                response = requests.put(
+                    f"{API_URL}/dinosaurs/{dino['id']}",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {secret_key}"}
+                )
+                if response.status_code == 200:
+                    st.success(f"✅ Updated {response.json()['name']} successfully!")
+                    del st.session_state.loaded_dino
+                elif response.status_code == 401:
+                    st.error("❌ Invalid API key.")
+                else:
+                    st.error(f"Failed to update: {response.text}")
 
 # ── DELETE ────────────────────────────────────────────────────
 elif menu == "🗑️ Delete":
     st.header("🗑️ Delete a Dinosaur")
+
+    secret_key = get_auth_key()
+
     dino_id = st.number_input("Enter Dinosaur ID to delete", min_value=1, step=1)
 
     if st.button("Load Dinosaur"):
@@ -208,10 +213,18 @@ elif menu == "🗑️ Delete":
 
     if "dino_to_delete" in st.session_state:
         if st.button("🗑️ Confirm Delete", type="primary"):
-            dino = st.session_state.dino_to_delete
-            response = requests.delete(f"{API_URL}/dinosaurs/{dino['id']}", headers=HEADERS)
-            if response.status_code == 200:
-                st.success(f"✅ Deleted {dino['name']} successfully!")
-                del st.session_state.dino_to_delete
+            if not secret_key:
+                st.error("❌ Please enter your API key above before deleting.")
             else:
-                st.error(f"Failed to delete: {response.text}")
+                dino = st.session_state.dino_to_delete
+                response = requests.delete(
+                    f"{API_URL}/dinosaurs/{dino['id']}",
+                    headers={"Authorization": f"Bearer {secret_key}"}
+                )
+                if response.status_code == 200:
+                    st.success(f"✅ Deleted {dino['name']} successfully!")
+                    del st.session_state.dino_to_delete
+                elif response.status_code == 401:
+                    st.error("❌ Invalid API key.")
+                else:
+                    st.error(f"Failed to delete: {response.text}")
