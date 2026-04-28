@@ -10,7 +10,10 @@ st.markdown("Dinosaur facts with images pulled automatically from Wikipedia.")
 # ── IMAGE HELPER ──────────────────────────────────────────────
 def get_dino_image(name):
     try:
-        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{name.replace(' ', '_')}"
+        # lowercase everything after the first word
+        parts = name.split(' ')
+        formatted = parts[0] + ' ' + ' '.join(p.lower() for p in parts[1:])
+        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{formatted.replace(' ', '_')}"
         r = requests.get(url, timeout=5)
         if r.status_code == 200:
             data = r.json()
